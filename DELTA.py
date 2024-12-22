@@ -60,8 +60,6 @@ from torch_geometric.utils import degree, add_self_loops, k_hop_subgraph
 import torch.nn.functional as F
 from sklearn.cluster import KMeans
 
-
-# 命令行参数解析
 parser = argparse.ArgumentParser(description='Run the GNN model with specific parameters.')
 parser.add_argument('--seed', type=int, default=666, help='Random seed for reproducibility')
 parser.add_argument('--source', type=str, required=True, help='Source dataset name')
@@ -75,8 +73,6 @@ parser.add_argument('--backboneGNN', type=str, help='backboneGNN')
 parser.add_argument('--backboneGNN2', type=str, help='backboneGNN2')
 args = parser.parse_args()
 
-
-# 设置随机种子
 set_seed(args.seed)
 budget = args.n_clusters
 label_rate = args.label_rate
@@ -728,9 +724,6 @@ import torch
 from torch_geometric.utils import degree, add_self_loops, k_hop_subgraph
 import torch.nn.functional as F
 from sklearn.cluster import KMeans
-
-DELTA_Score = DELTA_Score
-
 
 # Identify different indices
 different_indices_weighted_KL = (cosine_distance > args.threhold).nonzero(as_tuple=True)[0].cpu().numpy()
