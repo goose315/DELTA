@@ -15,11 +15,9 @@ import random
 import torch.nn.functional as F
 from sklearn.metrics import f1_score
 from pytorch_metric_learning import losses
-
-from torch_geometric.nn import GINConv, GCNConv, GraphConv, GATConv, SAGEConv, WLConv, NNConv, SplineConv, WLConvContinuous
-from torch_geometric.nn import DenseGCNConv, DenseGraphConv, DenseSAGEConv
+from GNN_model import GNN, GIB, GRL
+from torch_geometric.nn import GINConv, GCNConv, GraphConv, GATConv, SAGEConv
 from torch_geometric.loader import DataLoader
-from torch_geometric.datasets import TUDataset
 from torch_geometric.transforms import ToUndirected
 
 sys.path.append("/data/zeyu/active_learning_domain/deep-active-learning")
@@ -27,24 +25,17 @@ sys.path.append("/data/zeyu/active_learning_domain/GIFI")
 sys.path.append("/data/zeyu/active_learning_domain/")
 
 from gnn.dataset.DomainData import DomainData
-from GNN_model import GNN, GIB, GRL
+from GNN_model import GNN
 from Graph_Reduction import MaskFeature, DropEdge
 from utils import get_node_central_weight
 from Loss_functions import Semi_loss
-
+from pytorch_metric_learning import losses
 from torch import nn
 import torch.nn.functional as F
 import itertools
 import time
 import warnings
 import math
-
-from GNN_model import GNN, GIB, GRL
-from Graph_Reduction import MaskFeature, DropEdge
-from utils import get_node_central_weight
-from Loss_functions import Semi_loss
-from pytorch_metric_learning import losses
-
 
 def set_seed(seed):
     random.seed(seed)
@@ -80,7 +71,7 @@ source = args.source
 target = args.target
 epochs = 200
 
-# 加载数据
+# Load Dataset
 dataset = DomainData("/data/zeyu/active_learning_domain/GIFI/data/{}".format(source), name=source)
 source_data = dataset[0]
 source_data.num_classes = dataset.num_classes
@@ -605,13 +596,6 @@ sorted_distances, sorted_indices = torch.sort(distances, descending=True)
 distances = distances.detach().cpu().numpy()
 distances = distances.reshape(-1, 1)
 
-#adverscore = corresponding_max_target_adloss
-adverscore = pair_data_1[0]
-adverscore = min_max_normalize(adverscore)
-adverscore = adverscore.reshape(-1, 1)
-adverscore = adverscore.detach().cpu().numpy()
-#normalized_similarities_embedding = -adverscore
-
 normalized_similarities_embedding = distances
 
 import numpy as np
@@ -630,25 +614,6 @@ def compute_khop(data, k):
         all_subgraph_nodes.append((subgraph_nodes.tolist(), subgraph_edge_index))
 
     return all_subgraph_nodes
-
-def calculate_khop_subgraph_logits(data, logits, k):
-    edge_index = data.edge_index
-    num_nodes = data.num_nodes
-    
-    all_subgraph_info = compute_khop(data, k)
-    subgraph_logits = []
-
-    for subgraph_nodes, subgraph_edge_index in all_subgraph_info:
-        try:
-            subgraph_edge_index, _ = add_self_loops(subgraph_edge_index)
-            subgraph_logits_values = logits[subgraph_nodes]
-            subgraph_logit = subgraph_logits_values.mean(dim=0)
-            subgraph_logits.append(subgraph_logit)
-        except IndexError as e:
-            print(f"IndexError: {e} with nodes: {subgraph_nodes}")
-            continue
-
-    return torch.stack(subgraph_logits)
 
 def min_max_normalize(tensor):
     min_val = tensor.min()
@@ -698,8 +663,6 @@ weightedsubgraph_logits2 = calculate_weightedkhop_subgraph_logits(target_data, t
 weightedkhop_entropy_scores1, node_entropy_scores1, kl_divergence_scores1, weightedkhop_entropy_kl_divergence_scores1, node_entropy_kl_divergence_scores1 = calculate_khop_entropy_and_kl(target_logits_Backbone_1, weightedsubgraph_logits1)
 weightedkhop_entropy_scores2, node_entropy_scores2, kl_divergence_scores2, weightedkhop_entropy_kl_divergence_scores2, node_entropy_kl_divergence_scores2 = calculate_khop_entropy_and_kl(target_logits_Backbone_PAN, weightedsubgraph_logits2)
 weightedkhop_entropy_scores = weightedkhop_entropy_scores1 + weightedkhop_entropy_scores2
-#weightedkhop_entropy_scores = weightedkhop_entropy_scores1
-#print(khop_entropy_scores)
 
 # Convert numpy arrays to PyTorch tensors
 target_preds_branch1 = torch.tensor(target_logits_Backbone_1).to('cuda')
